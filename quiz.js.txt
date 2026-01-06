@@ -1,0 +1,246 @@
+const questions = [
+    {
+        question: "Which of the following is an input device?",
+        options: ["Monitor", "Printer", "Keyboard", "Speaker"],
+        answer: "Keyboard"
+    },
+    {
+        question: "What does CPU stand for?",
+        options: [
+            "Central Processing Unit",
+            "Computer Processing Unit",
+            "Central Program Unit",
+            "Control Processing Unit"
+        ],
+        answer: "Central Processing Unit"
+    },
+   
+    {
+        question: "Which of the following is an operating system?",
+        options: ["MS Word", "Windows", "Google", "Intel"],
+        answer: "Windows"
+    },
+    {
+        question: "Which unit of a computer performs calculations?",
+        options: ["Control Unit", "ALU", "Memory Unit", "Input Unit"],
+        answer: "ALU"
+    },
+    {
+        question: "What is the full form of RAM?",
+        options: [
+            "Read Access Memory",
+            "Random Access Memory",
+            "Rapid Access Memory",
+            "Run Access Memory"
+        ],
+        answer: "Random Access Memory"
+    },
+    
+];
+
+
+let currentIndex = 0;
+let score = 0;
+let timeLeft = 10;
+let timerInterval;
+
+let timeSpent = [];
+let questionStartTime;
+let incorrect = 0;
+let answerStatus = [];
+
+
+function startQuiz() {
+    currentIndex = 0;
+    score = 0;
+    incorrect = 0;
+    timeSpent = [];
+    answerStatus = [];
+
+    document.getElementById("startScreen").style.display = "none";
+    document.getElementById("quizScreen").style.display = "block";
+    document.getElementById("resultScreen").style.display = "none";
+
+    loadQuestion();
+}
+
+
+
+function loadQuestion() {
+    clearInterval(timerInterval);
+
+    questionStartTime = Date.now();
+
+    let q = questions[currentIndex];
+    document.getElementById("question").innerText = q.question;
+
+    let optionHTML = "";
+    q.options.forEach(opt => {
+        optionHTML += `
+            <label class="option">
+                <input type="radio" name="option" value="${opt}">
+                ${opt}
+            </label>
+        `;
+    });
+
+    document.getElementById("options").innerHTML = optionHTML;
+
+    startTimer();
+}
+
+
+function startTimer() {
+    timeLeft = 10;
+    document.getElementById("timer").innerText = timeLeft;
+
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").innerText = timeLeft;
+
+        if (timeLeft === 0) {
+            nextQuestion();
+        }
+    }, 1000);
+}
+
+function nextQuestion() {
+    clearInterval(timerInterval);
+
+    let timeTaken = Math.floor((Date.now() - questionStartTime) / 1000);
+    timeSpent.push(timeTaken);
+
+
+    let selected = document.querySelector('input[name="option"]:checked');
+    if (selected && selected.value === questions[currentIndex].answer) {
+    score++;
+    answerStatus.push(true);
+    } else {
+    incorrect++;
+    answerStatus.push(false);
+   }
+
+
+    currentIndex++;
+
+    if (currentIndex < questions.length) {
+        loadQuestion();
+    } else {
+        showResult();
+    }
+}
+
+function showResult() {
+    document.getElementById("quizScreen").style.display = "none";
+    document.getElementById("resultScreen").style.display = "block";
+
+    document.getElementById("score").innerText =
+        "Your Score: " + score + "/" + questions.length;
+    document.getElementById("analysis").innerText =
+    "Correct: " + score + " | Incorrect: " + incorrect;
+
+   let timeHTML = `
+    <div class="time-box">
+        <h3>⏱ Time Spent Per Question</h3>
+`;
+
+timeSpent.forEach((t, i) => {
+    let isCorrect = answerStatus[i];
+    let statusText = isCorrect ? "Correct" : "Wrong";
+    let statusClass = isCorrect ? "correct-text" : "wrong-text";
+
+    timeHTML += `
+        <div class="time-row ${statusClass}">
+            <span>Question ${i + 1}</span>
+            <span>${t} sec</span>
+            <span>${statusText}</span>
+        </div>
+    `;
+});
+
+timeHTML += `</div>`;
+
+document.getElementById("timeDetails").innerHTML = timeHTML;
+
+
+
+// PIE CHART — Correct vs Incorrect
+new Chart(document.getElementById("resultChart"), {
+    type: "pie",
+    data: {
+        labels: ["Correct", "Incorrect"],
+        datasets: [{
+            data: [score, incorrect],
+            backgroundColor: ["#4CAF50", "#F44336"]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: "bottom"
+            }
+        }
+    }
+});
+
+// BAR CHART — Time per Question (FIXED)
+new Chart(document.getElementById("timeChart"), {
+    type: "bar",
+    data: {
+        labels: timeSpent.map((_, i) => "Q" + (i + 1)),
+        datasets: [{
+            label: "Time (seconds)",
+            data: timeSpent,
+            backgroundColor: "#667eea"
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+
+}
+document.addEventListener("change", function (e) {
+    if (e.target.name === "option") {
+        const selectedValue = e.target.value;
+        const correctAnswer = questions[currentIndex].answer;
+
+        const allOptions = document.querySelectorAll(".option");
+
+        // Disable all inputs AFTER selection
+        allOptions.forEach(opt => {
+            opt.querySelector("input").disabled = true;
+            opt.classList.remove("correct", "wrong");
+        });
+
+        if (selectedValue === correctAnswer) {
+            e.target.parentElement.classList.add("correct");
+        } else {
+            e.target.parentElement.classList.add("wrong");
+
+            // Highlight correct answer
+            allOptions.forEach(opt => {
+                if (opt.textContent.trim() === correctAnswer) {
+                    opt.classList.add("correct");
+                }
+            });
+        }
+    }
+});
+
+
+
+
+
